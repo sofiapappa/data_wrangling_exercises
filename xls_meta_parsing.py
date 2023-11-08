@@ -1,6 +1,10 @@
 import xlrd
 import csv
 
+from numbers import Number 
+from datetime import datetime
+
+
 source_workbook = xlrd.open_workbook('fredgraph.xls')
 
 source_workbook_meta = open('ferdgraph_meta.txt', 'w')
@@ -20,7 +24,23 @@ for sheet_name in source_workbook.sheet_names():
             is_table_data = True
 
         if is_table_data:
-            output_writer.writerow(current_sheet.row_values(row_num))
+            # extract the table-type values into seperate variables
+            the_date_num = current_sheet.row_values(row_num)[0]
+            U6_value = current_sheet.row_values(row_num)[1]
+
+            # create a new row object with each of the values
+            new_row = [the_date_num, U6_value]
+
+            # if the_date_num is number then the current row is NOT the header row
+            # So we need to transform the date:
+            if isinstance(the_date_num, Number):
+                the_date_num = xlrd.xldate_as_datetime(the_date_num, source_workbook.datemode)
+
+                #overwite the first value in the new row tith the reformatted date
+                new_row[0] = the_date_num.strftime('%m/%d/%Y')
+            output_writer.writerow(new_row)
+        #otherwise this row should be metadata
+        
         else:
             for item in current_sheet.row(row_num):
                 source_workbook_meta.write(item.value)
@@ -28,6 +48,6 @@ for sheet_name in source_workbook.sheet_names():
 
             #at the end of each line of metadata add a new line
             source_workbook_meta.write('\n')
-            
+
     output_file.close()
     source_workbook_meta.close()
